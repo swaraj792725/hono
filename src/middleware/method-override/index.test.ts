@@ -12,6 +12,7 @@ describe('Method Override Middleware', () => {
         method: c.req.method,
         message: form.get('message'),
         contentType: c.req.header('content-type') ?? '',
+        contentLength: c.req.header('content-length'),
       })
     })
 
@@ -110,6 +111,22 @@ describe('Method Override Middleware', () => {
         const data = await res.json()
         expect(data.method).toBe('DELETE')
         expect(data.message).toBe('Hello')
+      })
+
+      it('Should discard stale Content-Length header after rewriting form body', async () => {
+        const res = await app.request('/posts', {
+          body: '_method=DELETE&message=Hello',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': '28',
+          },
+          method: 'POST',
+        })
+        expect(res.status).toBe(200)
+        const data = await res.json()
+        expect(data.method).toBe('DELETE')
+        expect(data.message).toBe('Hello')
+        expect(data.contentLength).toBeUndefined()
       })
 
       it('Should override POST to PATCH - not found', async () => {
